@@ -50,7 +50,7 @@ import io.lettuce.core.protocol.ProtocolKeyword;
 import io.lettuce.core.protocol.RedisCommand;
 import io.lettuce.core.vector.RawVector;
 import io.lettuce.core.vector.VectorMetadata;
-import io.lettuce.core.output.MetadataAwareValueOutput;
+import io.lettuce.core.models.ValueWithMetadata;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -1254,9 +1254,9 @@ public abstract class AbstractRedisAsyncCommands<K, V> implements RedisAclAsyncC
      * Get the value of a key with metadata support.
      *
      * @param key the key
-     * @return RedisFuture with MetadataAwareValueOutput containing the value and any metadata
+     * @return RedisFuture with ValueWithMetadata containing the value and any metadata
      */
-    public RedisFuture<MetadataAwareValueOutput<K, V>> getWithMetadata(K key) {
+    public RedisFuture<ValueWithMetadata<V>> getWithMetadata(K key) {
         return dispatch(commandBuilder.getWithMetadata(key));
     }
 
@@ -1988,9 +1988,9 @@ public abstract class AbstractRedisAsyncCommands<K, V> implements RedisAclAsyncC
      * Get multiple values with metadata support.
      *
      * @param keys the keys
-     * @return RedisFuture with list of MetadataAwareValueOutput containing the values and any metadata
+     * @return RedisFuture with list of ValueWithMetadata containing the values and any metadata
      */
-    public RedisFuture<List<MetadataAwareValueOutput<K, V>>> mgetWithMetadata(K... keys) {
+    public RedisFuture<List<ValueWithMetadata<V>>> mgetWithMetadata(K... keys) {
         return dispatch(commandBuilder.mgetWithMetadata(keys));
     }
 

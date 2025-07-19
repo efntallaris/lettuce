@@ -4582,26 +4582,27 @@ class RedisCommandBuilder<K, V> extends BaseRedisCommandBuilder<K, V> {
      * Create a GET command with metadata-aware output.
      *
      * @param key the key to get
-     * @return Command with MetadataAwareValueOutput
+     * @return Command with ValueWithMetadata
      */
-    public Command<K, V, MetadataAwareValueOutput<K, V>> getWithMetadata(K key) {
+    public Command<K, V, ValueWithMetadata<V>> getWithMetadata(K key) {
         notNullKey(key);
-        MetadataAwareValueOutput<K, V> output = new MetadataAwareValueOutput<>(codec);
-        return new Command<K, V, MetadataAwareValueOutput<K, V>>(GET, output, key);
+        ValueWithMetadataOutput<K, V> output = new ValueWithMetadataOutput<>(codec);
+        CommandArgs<K, V> args = new CommandArgs<>(codec).addKey(key);
+        return new Command<K, V, ValueWithMetadata<V>>(GET, output, args);
     }
 
     /**
      * Create a MGET command with metadata-aware output.
      *
      * @param keys the keys to get
-     * @return Command with MetadataAwareValueOutput list
+     * @return Command with ValueWithMetadata list
      */
-    public Command<K, V, List<MetadataAwareValueOutput<K, V>>> mgetWithMetadata(K... keys) {
+    public Command<K, V, List<ValueWithMetadata<V>>> mgetWithMetadata(K... keys) {
         notEmpty(keys);
         CommandArgs<K, V> args = new CommandArgs<>(codec);
         args.addKeys(keys);
-        MetadataAwareValueListOutput<K, V> output = new MetadataAwareValueListOutput<>(codec);
-        return new Command<K, V, List<MetadataAwareValueOutput<K, V>>>(MGET, output, args);
+        ValueWithMetadataListOutput<K, V> output = new ValueWithMetadataListOutput<>(codec);
+        return new Command<K, V, List<ValueWithMetadata<V>>>(MGET, output, args);
     }
 
 }

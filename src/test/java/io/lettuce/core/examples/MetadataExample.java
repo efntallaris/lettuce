@@ -23,7 +23,7 @@ import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
-import io.lettuce.core.output.MetadataAwareValueOutput;
+import io.lettuce.core.models.ValueWithMetadata;
 import io.lettuce.core.models.MigrationMetadata;
 
 import java.util.List;
@@ -71,7 +71,7 @@ public class MetadataExample {
                         System.out.println("\nMultiple values with metadata:");
                         
                         for (int i = 0; i < results.size(); i++) {
-                            MetadataAwareValueOutput<String, String> result = results.get(i);
+                            ValueWithMetadata<String> result = results.get(i);
                             System.out.println("Key " + i + ": " + result.getValue());
                             
                             if (result.hasMigrationMetadata()) {
