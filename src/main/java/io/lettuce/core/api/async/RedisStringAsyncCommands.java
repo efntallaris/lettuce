@@ -31,6 +31,7 @@ import io.lettuce.core.LcsArgs;
 import io.lettuce.core.StrAlgoArgs;
 import io.lettuce.core.StringMatchResult;
 import io.lettuce.core.output.KeyValueStreamingChannel;
+import io.lettuce.core.models.ValueWithMetadata;
 
 /**
  * Asynchronous executed commands for Strings.
@@ -257,6 +258,14 @@ public interface RedisStringAsyncCommands<K, V> {
     RedisFuture<V> get(K key);
 
     /**
+     * Get the value of a key with metadata support.
+     *
+     * @param key the key.
+     * @return ValueWithMetadata containing the value and any metadata attached to the response.
+     */
+    RedisFuture<ValueWithMetadata<V>> getWithMetadata(K key);
+
+    /**
      * Returns the bit value at offset in the string value stored at key.
      *
      * @param key the key.
@@ -336,6 +345,14 @@ public interface RedisStringAsyncCommands<K, V> {
      * @return List&lt;V&gt; array-reply list of values at the specified keys.
      */
     RedisFuture<List<KeyValue<K, V>>> mget(K... keys);
+
+    /**
+     * Get the values of all the given keys with metadata support.
+     *
+     * @param keys the keys.
+     * @return List of ValueWithMetadata containing the values and any metadata attached to the responses.
+     */
+    RedisFuture<List<ValueWithMetadata<V>>> mgetWithMetadata(K... keys);
 
     /**
      * Stream over the values of all the given keys.
