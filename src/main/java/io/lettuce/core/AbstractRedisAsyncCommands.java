@@ -1249,6 +1249,16 @@ public abstract class AbstractRedisAsyncCommands<K, V> implements RedisAclAsyncC
         return dispatch(commandBuilder.get(key));
     }
 
+    /**
+     * Get the value of a key with metadata support.
+     *
+     * @param key the key
+     * @return RedisFuture with MetadataAwareValueOutput containing the value and any metadata
+     */
+    public RedisFuture<MetadataAwareValueOutput<K, V>> getWithMetadata(K key) {
+        return dispatch(commandBuilder.getWithMetadata(key));
+    }
+
     public StatefulConnection<K, V> getConnection() {
         return connection;
     }
@@ -1971,6 +1981,16 @@ public abstract class AbstractRedisAsyncCommands<K, V> implements RedisAclAsyncC
 
     public RedisFuture<Long> mget(KeyValueStreamingChannel<K, V> channel, Iterable<K> keys) {
         return dispatch(commandBuilder.mget(channel, keys));
+    }
+
+    /**
+     * Get multiple values with metadata support.
+     *
+     * @param keys the keys
+     * @return RedisFuture with list of MetadataAwareValueOutput containing the values and any metadata
+     */
+    public RedisFuture<List<MetadataAwareValueOutput<K, V>>> mgetWithMetadata(K... keys) {
+        return dispatch(commandBuilder.mgetWithMetadata(keys));
     }
 
     @Override

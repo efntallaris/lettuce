@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 
 import io.lettuce.core.internal.LettuceStrings;
 import io.lettuce.core.output.CommandOutput;
+import io.lettuce.core.output.MetadataAwareValueOutput;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.ByteProcessor;
@@ -604,7 +605,45 @@ public class RedisStateMachine {
 
     private static State.Result handleAttribute(RedisStateMachine rsm, State state, ByteBuf buffer,
             CommandOutput<?, ?, ?> output, Consumer<Exception> errorHandler) {
-        throw new RedisProtocolException("Not implemented");
+        
+        // Read the attribute count
+        ByteBuffer countBytes = rsm.readLine(buffer);
+        if (countBytes == null) {
+            return State.Result.CONTINUE_LOOP;
+        }
+        
+        int attributeCount = (int) rsm.readLong(buffer, buffer.readerIndex() - countBytes.remaining(), buffer.readerIndex());
+        
+        // Process each attribute key-value pair
+        for (int i = 0; i < attributeCount; i++) {
+            // Read attribute key
+            ByteBuffer keyBytes = rsm.readLine(buffer);
+            if (keyBytes == null) {
+                return State.Result.CONTINUE_LOOP;
+            }
+            String key = rsm.decodeString(keyBytes);
+            
+            // Read attribute value
+            ByteBuffer valueBytes = rsm.readLine(buffer);
+            if (valueBytes == null) {
+                return State.Result.CONTINUE_LOOP;
+            }
+            
+            // Try to parse as integer first, then as string
+            Object value;
+            try {
+                value = rsm.readLong(buffer, buffer.readerIndex() - valueBytes.remaining(), buffer.readerIndex());
+            } catch (NumberFormatException e) {
+                value = rsm.decodeString(valueBytes);
+            }
+            
+            // Set the attribute on the output if it supports it
+            if (output instanceof MetadataAwareValueOutput) {
+                ((MetadataAwareValueOutput<?, ?>) output).setAttribute(key, value);
+            }
+        }
+        
+        return State.Result.NORMAL_END;
     }
 
     /**
