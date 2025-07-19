@@ -28,7 +28,7 @@ import io.lettuce.core.models.MigrationMetadata;
 
 /**
  * Value output that can handle RESP3 metadata attributes.
- * This output class extends ValueOutput to capture metadata that may be
+ * This output class extends CommandOutput to capture metadata that may be
  * attached to Redis responses, particularly migration metadata.
  *
  * @param <K> Key type.
@@ -36,18 +36,24 @@ import io.lettuce.core.models.MigrationMetadata;
  * @author Your Name
  * @since 7.0
  */
-public class MetadataAwareValueOutput<K, V> extends ValueOutput<K, V> {
+public class MetadataAwareValueOutput<K, V> extends CommandOutput<K, V, MetadataAwareValueOutput<K, V>> {
 
     private final Map<String, Object> attributes = new HashMap<>();
     private MigrationMetadata migrationMetadata;
 
     public MetadataAwareValueOutput(RedisCodec<K, V> codec) {
-        super(codec);
+        super(codec, null);
     }
 
     @Override
     public void set(ByteBuffer bytes) {
-        super.set(bytes);
+        if (bytes != null) {
+            this.output = this;
+            // Decode the value and store it
+            V value = codec.decodeValue(bytes);
+            // We'll store the value in the attributes map for now
+            attributes.put("_value", value);
+        }
     }
 
     /**
@@ -93,6 +99,16 @@ public class MetadataAwareValueOutput<K, V> extends ValueOutput<K, V> {
      */
     public MigrationMetadata getMigrationMetadata() {
         return migrationMetadata;
+    }
+
+    /**
+     * Get the actual value that was returned from Redis.
+     *
+     * @return the value, or null if not set
+     */
+    @SuppressWarnings("unchecked")
+    public V getValue() {
+        return (V) attributes.get("_value");
     }
 
     /**
@@ -152,7 +168,7 @@ public class MetadataAwareValueOutput<K, V> extends ValueOutput<K, V> {
     @Override
     public String toString() {
         return "MetadataAwareValueOutput{" +
-                "output=" + get() +
+                "value=" + getValue() +
                 ", attributes=" + attributes +
                 ", migrationMetadata=" + migrationMetadata +
                 '}';

@@ -49,7 +49,7 @@ public class MetadataExample {
             // Example 1: Get a single value with metadata
             CompletableFuture<Void> singleGetExample = commands.getWithMetadata("mykey")
                     .thenAccept(result -> {
-                        System.out.println("Value: " + result.get());
+                        System.out.println("Value: " + result.getValue());
                         
                         if (result.hasAttributes()) {
                             System.out.println("Attributes: " + result.getAttributes());
@@ -72,7 +72,7 @@ public class MetadataExample {
                         
                         for (int i = 0; i < results.size(); i++) {
                             MetadataAwareValueOutput<String, String> result = results.get(i);
-                            System.out.println("Key " + i + ": " + result.get());
+                            System.out.println("Key " + i + ": " + result.getValue());
                             
                             if (result.hasMigrationMetadata()) {
                                 MigrationMetadata metadata = result.getMigrationMetadata();

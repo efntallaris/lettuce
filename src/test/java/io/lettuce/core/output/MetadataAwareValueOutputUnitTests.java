@@ -44,7 +44,7 @@ class MetadataAwareValueOutputUnitTests {
         String value = "test-value";
         output.set(ByteBuffer.wrap(value.getBytes(StandardCharsets.UTF_8)));
         
-        assertThat(output.get()).isEqualTo(value);
+        assertThat(output.getValue()).isEqualTo(value);
     }
 
     @Test
