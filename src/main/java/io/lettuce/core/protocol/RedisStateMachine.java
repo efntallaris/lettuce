@@ -621,7 +621,7 @@ public class RedisStateMachine {
             if (keyBytes == null) {
                 return State.Result.CONTINUE_LOOP;
             }
-            String key = rsm.decodeString(keyBytes);
+            String key = keyBytes == null ? null : StandardCharsets.UTF_8.decode(keyBytes).toString();
             
             // Read attribute value
             ByteBuffer valueBytes = rsm.readLine(buffer);
@@ -634,7 +634,7 @@ public class RedisStateMachine {
             try {
                 value = rsm.readLong(buffer, buffer.readerIndex() - valueBytes.remaining(), buffer.readerIndex());
             } catch (NumberFormatException e) {
-                value = rsm.decodeString(valueBytes);
+                value = valueBytes == null ? null : StandardCharsets.UTF_8.decode(valueBytes).toString();
             }
             
             // Set the attribute on the output if it supports it

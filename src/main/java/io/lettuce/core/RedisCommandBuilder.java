@@ -4595,7 +4595,10 @@ class RedisCommandBuilder<K, V> extends BaseRedisCommandBuilder<K, V> {
      * @return RedisCommand with MetadataAwareValueOutput list
      */
     public RedisCommand<K, V, List<MetadataAwareValueOutput<K, V>>> mgetWithMetadata(K... keys) {
-        return createCommand(CommandType.MGET, new MetadataAwareValueListOutput<>(codec), keys);
+        CommandArgs<K, V> args = new CommandArgs<>(codec);
+        args.addKeys(keys);
+        MetadataAwareValueListOutput<K, V> output = new MetadataAwareValueListOutput<>(codec);
+        return createCommand(CommandType.MGET, output, args);
     }
 
 }

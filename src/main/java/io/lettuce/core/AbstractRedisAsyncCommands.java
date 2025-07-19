@@ -50,6 +50,7 @@ import io.lettuce.core.protocol.ProtocolKeyword;
 import io.lettuce.core.protocol.RedisCommand;
 import io.lettuce.core.vector.RawVector;
 import io.lettuce.core.vector.VectorMetadata;
+import io.lettuce.core.output.MetadataAwareValueOutput;
 
 import java.time.Duration;
 import java.time.Instant;
