@@ -34,6 +34,7 @@ import io.lettuce.core.protocol.CommandArgs;
 import io.lettuce.core.protocol.CommandKeyword;
 import io.lettuce.core.protocol.CommandType;
 import io.lettuce.core.protocol.RedisCommand;
+import io.lettuce.core.models.ValueWithMetadata;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
