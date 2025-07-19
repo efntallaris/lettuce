@@ -324,7 +324,7 @@ public class RedisStateMachine {
         boolean resp3Indicator = doDecode(buffer, output, errorHandler);
 
         if (debugEnabled) {
-            logger.debug("Decode done STRATOS, empty stack : {}", isEmpty(stack));
+            logger.debug("Decode done STRATOS commit 2, empty stack : {}", isEmpty(stack));
         }
 
         if (isDiscoverProtocol()) {
