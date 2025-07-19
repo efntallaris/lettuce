@@ -27,7 +27,7 @@ import io.lettuce.core.codec.RedisCodec;
 
 /**
  * List output that can handle RESP3 metadata attributes for each value in the list.
- * This output class extends ValueListOutput to capture metadata that may be
+ * This output class extends CommandOutput to capture metadata that may be
  * attached to Redis responses, particularly migration metadata.
  *
  * @param <K> Key type.
@@ -35,12 +35,10 @@ import io.lettuce.core.codec.RedisCodec;
  * @author Your Name
  * @since 7.0
  */
-public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
-
-    private final List<MetadataAwareValueOutput<K, V>> metadataAwareOutputs = new ArrayList<>();
+public class MetadataAwareValueListOutput<K, V> extends CommandOutput<K, V, List<MetadataAwareValueOutput<K, V>>> {
 
     public MetadataAwareValueListOutput(RedisCodec<K, V> codec) {
-        super(codec);
+        super(codec, new ArrayList<>());
     }
 
     @Override
@@ -48,10 +46,9 @@ public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
         // Create a new metadata-aware output for this value
         MetadataAwareValueOutput<K, V> output = new MetadataAwareValueOutput<>(codec);
         output.set(bytes);
-        metadataAwareOutputs.add(output);
         
-        // Also set the value in the parent list
-        super.set(bytes);
+        // Add to the output list
+        this.output.add(output);
     }
 
     /**
@@ -60,7 +57,7 @@ public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
      * @return the list of metadata-aware outputs
      */
     public List<MetadataAwareValueOutput<K, V>> getMetadataAwareOutputs() {
-        return new ArrayList<>(metadataAwareOutputs);
+        return new ArrayList<>(output);
     }
 
     /**
@@ -70,8 +67,8 @@ public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
      * @return the metadata-aware output, or null if index is out of bounds
      */
     public MetadataAwareValueOutput<K, V> getMetadataAwareOutput(int index) {
-        if (index >= 0 && index < metadataAwareOutputs.size()) {
-            return metadataAwareOutputs.get(index);
+        if (index >= 0 && index < output.size()) {
+            return output.get(index);
         }
         return null;
     }
@@ -82,7 +79,7 @@ public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
      * @return true if any value has attributes
      */
     public boolean hasAnyAttributes() {
-        return metadataAwareOutputs.stream().anyMatch(MetadataAwareValueOutput::hasAttributes);
+        return output.stream().anyMatch(MetadataAwareValueOutput::hasAttributes);
     }
 
     /**
@@ -91,7 +88,7 @@ public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
      * @return true if any value has migration metadata
      */
     public boolean hasAnyMigrationMetadata() {
-        return metadataAwareOutputs.stream().anyMatch(MetadataAwareValueOutput::hasMigrationMetadata);
+        return output.stream().anyMatch(MetadataAwareValueOutput::hasMigrationMetadata);
     }
 
     /**
@@ -101,7 +98,7 @@ public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
      */
     public List<io.lettuce.core.models.MigrationMetadata> getAllMigrationMetadata() {
         List<io.lettuce.core.models.MigrationMetadata> result = new ArrayList<>();
-        for (MetadataAwareValueOutput<K, V> output : metadataAwareOutputs) {
+        for (MetadataAwareValueOutput<K, V> output : this.output) {
             result.add(output.getMigrationMetadata());
         }
         return result;
@@ -110,8 +107,7 @@ public class MetadataAwareValueListOutput<K, V> extends ValueListOutput<K, V> {
     @Override
     public String toString() {
         return "MetadataAwareValueListOutput{" +
-                "output=" + get() +
-                ", metadataAwareOutputs=" + metadataAwareOutputs +
+                "output=" + output +
                 '}';
     }
 } 
