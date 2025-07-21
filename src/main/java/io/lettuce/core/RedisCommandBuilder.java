@@ -1451,7 +1451,7 @@ class RedisCommandBuilder<K, V> extends BaseRedisCommandBuilder<K, V> {
         return createCommand(GEOSEARCHSTORE, new IntegerOutput<>(codec), args);
     }
 
-    Command<K, V, V> get(K key) {
+    Command<K, V, MigrationAwareResponse<V>> get(K key) {
         notNullKey(key);
 
         return createCommand(GET, new MigrationAwareValueOutput<>(codec), key);
