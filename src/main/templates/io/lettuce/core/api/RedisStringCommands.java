@@ -497,4 +497,12 @@ public interface RedisStringCommands<K, V> {
      */
     Long strlen(K key);
 
+    /**
+     * Get the value of a key with migration metadata.
+     *
+     * @param key the key.
+     * @return RedisFuture<MigrationAwareResponse<V>> the value of {@code key}, or {@code null} when {@code key} does not exist.
+     */
+    RedisFuture<MigrationAwareResponse<V>> getWithMigrationMetadata(K key);
+
 }
