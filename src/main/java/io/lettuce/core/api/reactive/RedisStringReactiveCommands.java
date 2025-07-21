@@ -256,7 +256,7 @@ public interface RedisStringReactiveCommands<K, V> {
      * @param key the key.
      * @return V bulk-string-reply the value of {@code key}, or {@code null} when {@code key} does not exist.
      */
-    Mono<MigrationAwareResponse<V>> get(K key);
+    Mono<V> get(K key);
 
     /**
      * Returns the bit value at offset in the string value stored at key.
