@@ -637,11 +637,14 @@
                     <version>3.1.0</version>
                 </plugin>
 
+                <!-- Kotlin plugin disabled for migration metadata development -->
+                <!--
                 <plugin>
                     <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>kotlin-maven-plugin</artifactId>
                     <version>${kotlin.version}</version>
                 </plugin>
+                -->
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -796,6 +799,8 @@
                 </executions>
             </plugin>
 
+            <!-- Kotlin plugin disabled for migration metadata development -->
+            <!--
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
@@ -836,6 +841,7 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

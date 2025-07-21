@@ -199,7 +199,7 @@ interface RedisStringCoroutinesCommands<K : Any, V : Any> {
      * @param key the key.
      * @return V bulk-string-reply the value of `key`, or `null` when `key` does not exist.
      */
-    suspend fun get(key: K): V?
+    suspend fun get(key: K): MigrationAwareResponse<V>?
 
     /**
      * Returns the bit value at offset in the string value stored at key.

@@ -68,7 +68,7 @@ internal class RedisStringCoroutinesCommandsImpl<K : Any, V : Any>(internal val 
     override suspend fun decrby(key: K, amount: Long): Long? =
         ops.decrby(key, amount).awaitFirstOrNull()
 
-    override suspend fun get(key: K): V? = ops.get(key).awaitFirstOrNull()
+    override suspend fun get(key: K): MigrationAwareResponse<V>? = ops.get(key).awaitFirstOrNull()
 
     override suspend fun getbit(key: K, offset: Long): Long? =
         ops.getbit(key, offset).awaitFirstOrNull()
