@@ -35,6 +35,7 @@ import io.lettuce.core.migration.MigrationMetadata;
  * - 4 bytes: source_id (uint32_t)
  * - 4 bytes: dest_id (uint32_t)
  *
+ * This output handler follows the documentation pattern where Redis includes migration metadata
  * @param <K> Key type.
  * @param <V> Value type.
  * @author Mark Paluch
