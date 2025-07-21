@@ -48,6 +48,8 @@ import static io.lettuce.core.protocol.CommandType.*;
 import static io.lettuce.core.protocol.CommandType.COPY;
 import static io.lettuce.core.protocol.CommandType.SAVE;
 
+import io.lettuce.core.migration.MigrationAwareResponse;
+
 /**
  * @param <K>
  * @param <V>
