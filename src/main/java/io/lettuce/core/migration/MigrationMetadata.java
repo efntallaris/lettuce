@@ -19,55 +19,105 @@
  */
 package io.lettuce.core.migration;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 /**
- * Response wrapper that contains both the original Redis value and migration metadata.
+ * Migration metadata structure extracted from Redis responses.
+ * 
+ * According to the documentation, the metadata structure is 12 bytes:
+ * - Offset 0-1: slot_id (uint16_t) - Hash slot number (0-16383)
+ * - Offset 2-3: migration_status (uint16_t) - Migration status (0-2)
+ * - Offset 4-7: source_id (uint32_t) - Source node configEpoch
+ * - Offset 8-11: dest_id (uint32_t) - Destination node configEpoch
  *
- * @param <V> Value type
  * @author Mark Paluch
  * @since 6.3
  */
-public class MigrationAwareResponse<V> {
+public class MigrationMetadata {
 
-    private final V value;
-    private final MigrationMetadata metadata;
+    public enum MigrationStatus {
+        NOT_MIGRATED(0),
+        IN_PROGRESS(1),
+        MIGRATED(2);
 
-    public MigrationAwareResponse(V value, MigrationMetadata metadata) {
-        this.value = value;
-        this.metadata = metadata;
+        private final int value;
+
+        MigrationStatus(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public static MigrationStatus fromValue(int value) {
+            for (MigrationStatus status : values()) {
+                if (status.value == value) {
+                    return status;
+                }
+            }
+            throw new IllegalArgumentException("Unknown migration status: " + value);
+        }
+    }
+
+    private final int slotId;
+    private final MigrationStatus migrationStatus;
+    private final long sourceId;
+    private final long destId;
+
+    public MigrationMetadata(int slotId, MigrationStatus migrationStatus, long sourceId, long destId) {
+        this.slotId = slotId;
+        this.migrationStatus = migrationStatus;
+        this.sourceId = sourceId;
+        this.destId = destId;
     }
 
     /**
-     * Get the original Redis value.
+     * Parse migration metadata from a ByteBuffer containing the last 12 bytes of a Redis response.
      * 
-     * @return the value, or null if the key doesn't exist
+     * @param buffer ByteBuffer containing the metadata (must have at least 12 bytes remaining)
+     * @return MigrationMetadata object
      */
-    public V getValue() {
-        return value;
+    public static MigrationMetadata parse(ByteBuffer buffer) {
+        if (buffer.remaining() < 12) {
+            throw new IllegalArgumentException("Buffer must have at least 12 bytes remaining");
+        }
+
+        // Redis uses little-endian byte order
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        
+        int slotId = buffer.getShort() & 0xFFFF; // Convert to unsigned
+        int statusValue = buffer.getShort() & 0xFFFF; // Convert to unsigned
+        long sourceId = buffer.getInt() & 0xFFFFFFFFL; // Convert to unsigned
+        long destId = buffer.getInt() & 0xFFFFFFFFL; // Convert to unsigned
+
+        return new MigrationMetadata(slotId, MigrationStatus.fromValue(statusValue), sourceId, destId);
     }
 
-    /**
-     * Get the migration metadata.
-     * 
-     * @return the migration metadata, or null if no metadata was present
-     */
-    public MigrationMetadata getMetadata() {
-        return metadata;
+    public int getSlotId() {
+        return slotId;
     }
 
-    /**
-     * Check if migration metadata is present.
-     * 
-     * @return true if metadata is present, false otherwise
-     */
-    public boolean hasMetadata() {
-        return metadata != null;
+    public MigrationStatus getMigrationStatus() {
+        return migrationStatus;
+    }
+
+    public long getSourceId() {
+        return sourceId;
+    }
+
+    public long getDestId() {
+        return destId;
     }
 
     @Override
     public String toString() {
-        return "MigrationAwareResponse{" +
-                "value=" + value +
-                ", metadata=" + metadata +
+        return "MigrationMetadata{" +
+                "slotId=" + slotId +
+                ", migrationStatus=" + migrationStatus +
+                ", sourceId=" + sourceId +
+                ", destId=" + destId +
                 '}';
     }
 }
