@@ -50,6 +50,7 @@ import io.lettuce.core.protocol.ProtocolKeyword;
 import io.lettuce.core.protocol.RedisCommand;
 import io.lettuce.core.vector.RawVector;
 import io.lettuce.core.vector.VectorMetadata;
+import io.lettuce.core.migration.MigrationAwareResponse;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -1245,7 +1246,7 @@ public abstract class AbstractRedisAsyncCommands<K, V> implements RedisAclAsyncC
     }
 
     @Override
-    public RedisFuture<V> get(K key) {
+    public RedisFuture<MigrationAwareResponse<V>> get(K key) {
         return dispatch(commandBuilder.get(key));
     }
 

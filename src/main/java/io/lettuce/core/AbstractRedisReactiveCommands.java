@@ -58,6 +58,7 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import io.lettuce.core.migration.MigrationAwareResponse;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -1309,7 +1310,7 @@ public abstract class AbstractRedisReactiveCommands<K, V> implements RedisAclRea
     }
 
     @Override
-    public Mono<V> get(K key) {
+    public Mono<MigrationAwareResponse<V>> get(K key) {
         return createMono(() -> commandBuilder.get(key));
     }
 

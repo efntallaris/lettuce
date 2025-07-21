@@ -31,6 +31,7 @@ import io.lettuce.core.LcsArgs;
 import io.lettuce.core.StrAlgoArgs;
 import io.lettuce.core.StringMatchResult;
 import io.lettuce.core.output.KeyValueStreamingChannel;
+import io.lettuce.core.migration.MigrationAwareResponse;
 
 /**
  * Asynchronous executed commands for Strings.
@@ -254,7 +255,7 @@ public interface RedisStringAsyncCommands<K, V> {
      * @param key the key.
      * @return V bulk-string-reply the value of {@code key}, or {@code null} when {@code key} does not exist.
      */
-    RedisFuture<V> get(K key);
+    RedisFuture<MigrationAwareResponse<V>> get(K key);
 
     /**
      * Returns the bit value at offset in the string value stored at key.

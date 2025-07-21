@@ -24,6 +24,7 @@ import java.util.Map;
 
 import io.lettuce.core.*;
 import io.lettuce.core.output.KeyValueStreamingChannel;
+import io.lettuce.core.migration.MigrationAwareResponse;
 
 /**
  * ${intent} for Strings.
@@ -246,7 +247,7 @@ public interface RedisStringCommands<K, V> {
      * @param key the key.
      * @return V bulk-string-reply the value of {@code key}, or {@code null} when {@code key} does not exist.
      */
-    V get(K key);
+    MigrationAwareResponse<V> get(K key);
 
     /**
      * Returns the bit value at offset in the string value stored at key.
