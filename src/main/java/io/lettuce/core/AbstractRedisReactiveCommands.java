@@ -1310,7 +1310,7 @@ public abstract class AbstractRedisReactiveCommands<K, V> implements RedisAclRea
     }
 
     @Override
-    public Mono<MigrationAwareResponse<V>> get(K key) {
+    public Mono<V> get(K key) {
         return createMono(() -> commandBuilder.get(key));
     }
 

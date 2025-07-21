@@ -1246,7 +1246,7 @@ public abstract class AbstractRedisAsyncCommands<K, V> implements RedisAclAsyncC
     }
 
     @Override
-    public RedisFuture<MigrationAwareResponse<V>> get(K key) {
+    public RedisFuture<V> get(K key) {
         return dispatch(commandBuilder.get(key));
     }
 
