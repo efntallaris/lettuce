@@ -55,43 +55,49 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
 
     @Override
     public void set(ByteBuffer bytes) {
-        logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Setting value with bytes: {}", bytes);
-        if (bytes == null) {
-            output = new MigrationAwareResponse<>(null, null);
-            return;
-        }
-
-        // Check if the buffer is large enough to contain metadata
-        if (bytes.remaining() >= METADATA_SIZE) {
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Buffer is large enough to contain metadata");
-            // Calculate the boundary between data and metadata
-            int dataLength = bytes.remaining() - METADATA_SIZE;
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Data length: {}", dataLength);
-
-            // Extract the original data (first N bytes)
-            ByteBuffer dataBuffer = bytes.duplicate();
-            dataBuffer.limit(dataBuffer.position() + dataLength);
-            originalValue = codec.decodeValue(dataBuffer);
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Original value: {}", originalValue);
-
-            // Extract the metadata (last 12 bytes)
-            ByteBuffer metadataBuffer = bytes.duplicate();
-            metadataBuffer.position(metadataBuffer.position() + dataLength);
-            metadataBuffer.limit(metadataBuffer.position() + METADATA_SIZE);
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Metadata buffer: {}", metadataBuffer);
-            try {
-                MigrationMetadata metadata = MigrationMetadata.parse(metadataBuffer);
-                output = new MigrationAwareResponse<>(originalValue, metadata);
-            } catch (Exception e) {
-                // If metadata parsing fails, treat as normal response without metadata
-                output = new MigrationAwareResponse<>(originalValue, null);
-            }
-        } else {
-            // Buffer too small for metadata, treat as normal response
-            originalValue = codec.decodeValue(bytes);
-            output = new MigrationAwareResponse<>(originalValue, null);
-        }
+        output = (bytes == null) ? null : codec.decodeValue(bytes);
     }
+    
+    // @Override
+    // public void set(ByteBuffer bytes) {
+        
+    //     logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Setting value with bytes: {}", bytes);
+    //     if (bytes == null) {
+    //         output = new MigrationAwareResponse<>(null, null);
+    //         return;
+    //     }
+
+    //     // Check if the buffer is large enough to contain metadata
+    //     if (bytes.remaining() >= METADATA_SIZE) {
+    //         logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Buffer is large enough to contain metadata");
+    //         // Calculate the boundary between data and metadata
+    //         int dataLength = bytes.remaining() - METADATA_SIZE;
+    //         logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Data length: {}", dataLength);
+
+    //         // Extract the original data (first N bytes)
+    //         ByteBuffer dataBuffer = bytes.duplicate();
+    //         dataBuffer.limit(dataBuffer.position() + dataLength);
+    //         originalValue = codec.decodeValue(dataBuffer);
+    //         logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Original value: {}", originalValue);
+
+    //         // Extract the metadata (last 12 bytes)
+    //         ByteBuffer metadataBuffer = bytes.duplicate();
+    //         metadataBuffer.position(metadataBuffer.position() + dataLength);
+    //         metadataBuffer.limit(metadataBuffer.position() + METADATA_SIZE);
+    //         logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Metadata buffer: {}", metadataBuffer);
+    //         try {
+    //             MigrationMetadata metadata = MigrationMetadata.parse(metadataBuffer);
+    //             output = new MigrationAwareResponse<>(originalValue, metadata);
+    //         } catch (Exception e) {
+    //             // If metadata parsing fails, treat as normal response without metadata
+    //             output = new MigrationAwareResponse<>(originalValue, null);
+    //         }
+    //     } else {
+    //         // Buffer too small for metadata, treat as normal response
+    //         originalValue = codec.decodeValue(bytes);
+    //         output = new MigrationAwareResponse<>(originalValue, null);
+    //     }
+    // }
 
     @Override
     public String toString() {

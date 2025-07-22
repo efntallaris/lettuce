@@ -3609,4 +3609,9 @@ public abstract class AbstractRedisAsyncCommands<K, V> implements RedisAclAsyncC
         return script.getBytes(getConnection().getOptions().getScriptCharset());
     }
 
+    @Override
+    public RedisFuture<MigrationAwareResponse<V>> getWithMigrationMetadata(K key) {
+        return dispatch(commandBuilder.getWithMigrationMetadata(key));
+    }
+
 }
