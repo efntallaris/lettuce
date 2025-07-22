@@ -55,8 +55,8 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
 
     @Override
     public void set(ByteBuffer bytes) {
-        
-        output = (bytes == null) ? null : codec.decodeValue(bytes);
+
+        output = new MigrationAwareResponse<>((bytes == null) ? null : codec.decodeValue(bytes), null);
     }
 
     // @Override
