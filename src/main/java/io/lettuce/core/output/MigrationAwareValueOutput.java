@@ -67,6 +67,7 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
             // Calculate the boundary between data and metadata
             int dataLength = bytes.remaining() - METADATA_SIZE;
             logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Data length: {}", dataLength);
+
             // Extract the original data (first N bytes)
             ByteBuffer dataBuffer = bytes.duplicate();
             dataBuffer.limit(dataBuffer.position() + dataLength);
