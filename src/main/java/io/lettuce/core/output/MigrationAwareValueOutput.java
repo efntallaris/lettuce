@@ -55,8 +55,15 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
 
     @Override
     public void set(ByteBuffer bytes) {
-
+        logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Setting value with bytes");
         output = new MigrationAwareResponse<>((bytes == null) ? null : codec.decodeValue(bytes), null);
+        ByteBuffer metadataBuffer = bytes.duplicate();
+        int dataLength = bytes.remaining() - METADATA_SIZE;
+        logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Data length: {}", dataLength);
+
+        metadataBuffer.position(metadataBuffer.position() + dataLength);
+        metadataBuffer.limit(metadataBuffer.position() + METADATA_SIZE);
+        logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Metadata buffer: {}", metadataBuffer);
     }
 
     // @Override
