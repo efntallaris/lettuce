@@ -70,7 +70,7 @@ public class MigrationAwareResponse<V> {
     //             ", metadata=" + metadata +
     //             '}';
     // }
-    private String bytesToHex(byte[] bytes) {
+    private static String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02x", b));
@@ -80,13 +80,14 @@ public class MigrationAwareResponse<V> {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : value) {
-            sb.append(String.format("%02x", b));
+        String valueString;
+        if (value instanceof byte[]) {
+            valueString = bytesToHex((byte[]) value);
+        } else {
+            valueString = String.valueOf(value);
         }
-        
         return "MigrationAwareResponse{" +
-                "value=" + sb.toString() +
+                "value=" + valueString +
                 ", metadata=" + metadata +
                 '}';
     }
