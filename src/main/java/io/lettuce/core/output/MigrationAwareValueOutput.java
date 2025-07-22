@@ -24,6 +24,8 @@ import java.nio.ByteBuffer;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.migration.MigrationAwareResponse;
 import io.lettuce.core.migration.MigrationMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Value output that extracts migration metadata from the last 12 bytes of Redis responses.
@@ -44,6 +46,7 @@ import io.lettuce.core.migration.MigrationMetadata;
 public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, MigrationAwareResponse<V>> {
 
     private static final int METADATA_SIZE = 12;
+    private static final Logger logger = LoggerFactory.getLogger(MigrationAwareValueOutput.class);
     private V originalValue;
 
     public MigrationAwareValueOutput(RedisCodec<K, V> codec) {
@@ -52,6 +55,7 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
 
     @Override
     public void set(ByteBuffer bytes) {
+        logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Setting value with bytes: {}", bytes);
         if (bytes == null) {
             output = new MigrationAwareResponse<>(null, null);
             return;
@@ -59,19 +63,21 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
 
         // Check if the buffer is large enough to contain metadata
         if (bytes.remaining() >= METADATA_SIZE) {
+            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Buffer is large enough to contain metadata");
             // Calculate the boundary between data and metadata
             int dataLength = bytes.remaining() - METADATA_SIZE;
-            
+            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Data length: {}", dataLength);
             // Extract the original data (first N bytes)
             ByteBuffer dataBuffer = bytes.duplicate();
             dataBuffer.limit(dataBuffer.position() + dataLength);
             originalValue = codec.decodeValue(dataBuffer);
-            
+            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Original value: {}", originalValue);
+
             // Extract the metadata (last 12 bytes)
             ByteBuffer metadataBuffer = bytes.duplicate();
             metadataBuffer.position(metadataBuffer.position() + dataLength);
             metadataBuffer.limit(metadataBuffer.position() + METADATA_SIZE);
-            
+            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Metadata buffer: {}", metadataBuffer);
             try {
                 MigrationMetadata metadata = MigrationMetadata.parse(metadataBuffer);
                 output = new MigrationAwareResponse<>(originalValue, metadata);
