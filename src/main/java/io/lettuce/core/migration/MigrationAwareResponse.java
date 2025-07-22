@@ -63,11 +63,31 @@ public class MigrationAwareResponse<V> {
         return metadata != null;
     }
 
+    // @Override
+    // public String toString() {
+    //     return "MigrationAwareResponse{" +
+    //             "value=" + value +
+    //             ", metadata=" + metadata +
+    //             '}';
+    // }
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : value) {
+            sb.append(String.format("%02x", b));
+        }
         return "MigrationAwareResponse{" +
-                "value=" + value +
+                "value=" + sb.toString() +
                 ", metadata=" + metadata +
                 '}';
     }
+
 } 
