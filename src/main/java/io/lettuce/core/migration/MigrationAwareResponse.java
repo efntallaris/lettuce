@@ -84,6 +84,7 @@ public class MigrationAwareResponse<V> {
         for (byte b : value) {
             sb.append(String.format("%02x", b));
         }
+        
         return "MigrationAwareResponse{" +
                 "value=" + sb.toString() +
                 ", metadata=" + metadata +
