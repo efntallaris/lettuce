@@ -64,13 +64,11 @@ public class MigrationMetadata {
     private final int slotId;
     private final MigrationStatus migrationStatus;
     private final long sourceId;
-    private final long destId;
 
-    public MigrationMetadata(int slotId, MigrationStatus migrationStatus, long sourceId, long destId) {
+    public MigrationMetadata(int slotId, MigrationStatus migrationStatus, long sourceId) {
         this.slotId = slotId;
         this.migrationStatus = migrationStatus;
         this.sourceId = sourceId;
-        this.destId = destId;
     }
 
     /**
@@ -90,9 +88,8 @@ public class MigrationMetadata {
         int slotId = buffer.getShort() & 0xFFFF; // Convert to unsigned
         int statusValue = buffer.getShort() & 0xFFFF; // Convert to unsigned
         long sourceId = buffer.getInt() & 0xFFFFFFFFL; // Convert to unsigned
-        long destId = buffer.getInt() & 0xFFFFFFFFL; // Convert to unsigned
 
-        return new MigrationMetadata(slotId, MigrationStatus.fromValue(statusValue), sourceId, destId);
+        return new MigrationMetadata(slotId, MigrationStatus.fromValue(statusValue), sourceId);
     }
 
     public int getSlotId() {
@@ -107,17 +104,12 @@ public class MigrationMetadata {
         return sourceId;
     }
 
-    public long getDestId() {
-        return destId;
-    }
-
     @Override
     public String toString() {
         return "MigrationMetadata{" +
                 "slotId=" + slotId +
                 ", migrationStatus=" + migrationStatus +
                 ", sourceId=" + sourceId +
-                ", destId=" + destId +
                 '}';
     }
 }

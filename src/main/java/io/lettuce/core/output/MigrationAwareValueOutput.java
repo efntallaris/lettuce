@@ -24,8 +24,8 @@ import java.nio.ByteBuffer;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.migration.MigrationAwareResponse;
 import io.lettuce.core.migration.MigrationMetadata;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 
 /**
  * Value output that extracts migration metadata from the last 12 bytes of Redis responses.
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, MigrationAwareResponse<V>> {
 
     private static final int METADATA_SIZE = 12;
-    private static final Logger logger = LoggerFactory.getLogger(MigrationAwareValueOutput.class);
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationAwareValueOutput.class);
     private V originalValue;
 
     public MigrationAwareValueOutput(RedisCodec<K, V> codec) {
@@ -55,7 +55,9 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
 
     @Override
     public void set(ByteBuffer bytes) {
-        logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Setting value with bytes: {}", bytes);
+        if (logger.isDebugEnabled()) {
+            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Setting value with bytes: {}", bytes);
+        }
         if (bytes == null) {
             output = new MigrationAwareResponse<>(null, null);
             return;
@@ -63,22 +65,30 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
 
         // Check if the buffer is large enough to contain metadata
         if (bytes.remaining() >= METADATA_SIZE) {
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Buffer is large enough to contain metadata");
+            if (logger.isDebugEnabled()) {
+                logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Buffer is large enough to contain metadata");
+            }
             // Calculate the boundary between data and metadata
             int dataLength = bytes.remaining() - METADATA_SIZE;
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Data length: {}", dataLength);
+            if (logger.isDebugEnabled()) {
+                logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Data length: {}", dataLength);
+            }
 
             // Extract the original data (first N bytes)
             ByteBuffer dataBuffer = bytes.duplicate();
             dataBuffer.limit(dataBuffer.position() + dataLength);
             originalValue = codec.decodeValue(dataBuffer);
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Original value: {}", originalValue);
+            if (logger.isDebugEnabled()) {
+                logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Original value: {}", originalValue);
+            }
 
             // Extract the metadata (last 12 bytes)
             ByteBuffer metadataBuffer = bytes.duplicate();
             metadataBuffer.position(metadataBuffer.position() + dataLength);
             metadataBuffer.limit(metadataBuffer.position() + METADATA_SIZE);
-            logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Metadata buffer: {}", metadataBuffer);
+            if (logger.isDebugEnabled()) {
+                logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Metadata buffer (hex): {}", byteBufferToHex(metadataBuffer));
+            }
             try {
                 MigrationMetadata metadata = MigrationMetadata.parse(metadataBuffer);
                 output = new MigrationAwareResponse<>(originalValue, metadata);
@@ -101,6 +111,17 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
         sb.append(", metadata=").append(output.getMetadata());
         sb.append(", error='").append(error).append('\'');
         sb.append(']');
+        return sb.toString();
+    }
+
+    // Add a helper method to print ByteBuffer as hex
+    private static String byteBufferToHex(ByteBuffer buffer) {
+        ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
+        readOnlyBuffer.rewind();
+        StringBuilder sb = new StringBuilder();
+        while (readOnlyBuffer.hasRemaining()) {
+            sb.append(String.format("%02x", readOnlyBuffer.get()));
+        }
         return sb.toString();
     }
 } 
