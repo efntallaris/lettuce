@@ -258,6 +258,15 @@ public interface RedisStringAsyncCommands<K, V> {
     RedisFuture<V> get(K key);
 
     /**
+     * Get the value of a key with migration metadata awareness.
+     *
+     * @param key the key.
+     * @return RedisFuture containing MigrationAwareResponse with the value of {@code key} and migration metadata, or {@code null} when {@code key} does not exist.
+     * @since 6.3
+     */
+    RedisFuture<MigrationAwareResponse<V>> getWithMigrationMetadata(K key);
+
+    /**
      * Returns the bit value at offset in the string value stored at key.
      *
      * @param key the key.
