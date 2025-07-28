@@ -45,7 +45,7 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
  */
 public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, MigrationAwareResponse<V>> {
 
-    private static final int METADATA_SIZE = 50; // Updated to match new metadata structure: 2+2+46+2 bytes
+    private static final int METADATA_SIZE = 52; // Updated to match new metadata structure: 2+2+46+2 bytes
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationAwareValueOutput.class);
     private V originalValue;
 
