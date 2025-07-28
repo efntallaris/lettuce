@@ -46,6 +46,42 @@ public class MigrationMetadata {
     private final int port;
     
     /**
+     * Parse migration metadata from a ByteBuffer containing the metadata.
+     * 
+     * @param buffer ByteBuffer containing the metadata (must have at least METADATA_SIZE bytes remaining)
+     * @return MigrationMetadata object, or null if parsing fails
+     */
+    public static MigrationMetadata parse(ByteBuffer buffer) {
+        if (buffer == null || buffer.remaining() < METADATA_SIZE) {
+            return null;
+        }
+        
+        try {
+            ByteBuffer bb = buffer.duplicate();
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            
+            // Read slot_id (2 bytes, uint16_t)
+            int slotId = bb.getShort() & 0xFFFF;
+            
+            // Read migration_status (2 bytes, uint16_t)  
+            int migrationStatus = bb.getShort() & 0xFFFF;
+            
+            // Read host (46 bytes, char array)
+            byte[] hostBytes = new byte[MAX_HOST_LEN];
+            bb.get(hostBytes);
+            String host = new String(hostBytes).trim();
+            
+            // Read port (2 bytes, uint16_t)
+            int port = bb.getShort() & 0xFFFF;
+            
+            return new MigrationMetadata(slotId, migrationStatus, host, port);
+            
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Parse migration metadata from a byte buffer
      * 
      * @param buffer The buffer containing the data + metadata

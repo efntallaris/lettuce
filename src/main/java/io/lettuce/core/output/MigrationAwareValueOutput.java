@@ -28,16 +28,16 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 /**
- * Value output that extracts migration metadata from the last 12 bytes of Redis responses.
+ * Value output that extracts migration metadata from the last 50 bytes of Redis responses.
  * 
- * This output handler follows the documentation pattern where Redis includes migration metadata
- * as the last 12 bytes of bulk string responses. The metadata structure is:
+ * This output handler follows the pattern where Redis includes migration metadata
+ * as the last 50 bytes of bulk string responses. The metadata structure is:
  * - 2 bytes: slot_id (uint16_t)
  * - 2 bytes: migration_status (uint16_t) 
- * - 4 bytes: source_id (uint32_t)
- * - 4 bytes: dest_id (uint32_t)
+ * - 46 bytes: host (char array, MAX_HOST_LEN)
+ * - 2 bytes: port (uint16_t)
  *
- * This output handler follows the documentation pattern where Redis includes migration metadata
+ * This output handler extracts migration metadata from Redis responses
  * @param <K> Key type.
  * @param <V> Value type.
  * @author Mark Paluch
@@ -45,7 +45,7 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
  */
 public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, MigrationAwareResponse<V>> {
 
-    private static final int METADATA_SIZE = 12;
+    private static final int METADATA_SIZE = 50; // Updated to match new metadata structure: 2+2+46+2 bytes
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationAwareValueOutput.class);
     private V originalValue;
 
