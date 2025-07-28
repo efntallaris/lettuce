@@ -23,93 +23,108 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
- * Migration metadata structure extracted from Redis responses.
+ * Migration metadata structure that matches the C struct in migration.h
  * 
- * According to the documentation, the metadata structure is 12 bytes:
- * - Offset 0-1: slot_id (uint16_t) - Hash slot number (0-16383)
- * - Offset 2-3: migration_status (uint16_t) - Migration status (0-2)
- * - Offset 4-7: source_id (uint32_t) - Source node configEpoch
- * - Offset 8-11: dest_id (uint32_t) - Destination node configEpoch
- *
- * @author Mark Paluch
- * @since 6.3
+ * C struct:
+ * typedef struct migrationMetadata {
+ *     uint16_t slot_id;           // 2 bytes
+ *     uint16_t migration_status;  // 2 bytes  
+ *     char host[MAX_HOST_LEN];    // 46 bytes (MAX_HOST_LEN = 46)
+ *     uint16_t port;              // 2 bytes
+ * } migrationMetadata;
+ * 
+ * Total size: 50 bytes
  */
 public class MigrationMetadata {
-
-    public enum MigrationStatus {
-        NOT_MIGRATED(0),
-        IN_PROGRESS(1),
-        MIGRATED(2);
-
-        private final int value;
-
-        MigrationStatus(int value) {
-            this.value = value;
+    
+    private static final int METADATA_SIZE = 50; // 2+2+46+2 bytes
+    private static final int MAX_HOST_LEN = 46;
+    
+    private final int slotId;
+    private final int migrationStatus;
+    private final String host;
+    private final int port;
+    
+    /**
+     * Parse migration metadata from a byte buffer
+     * 
+     * @param buffer The buffer containing the data + metadata
+     * @param dataLength The length of the actual data (before metadata)
+     * @return MigrationMetadata object, or null if parsing fails
+     */
+    public static MigrationMetadata parse(byte[] buffer, int dataLength) {
+        if (buffer == null || buffer.length < dataLength + METADATA_SIZE) {
+            return null;
         }
-
-        public int getValue() {
-            return value;
-        }
-
-        public static MigrationStatus fromValue(int value) {
-            for (MigrationStatus status : values()) {
-                if (status.value == value) {
-                    return status;
-                }
-            }
-            throw new IllegalArgumentException("Unknown migration status: " + value);
+        
+        try {
+            ByteBuffer bb = ByteBuffer.wrap(buffer, dataLength, METADATA_SIZE);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            
+            // Read slot_id (2 bytes, uint16_t)
+            int slotId = bb.getShort() & 0xFFFF;
+            
+            // Read migration_status (2 bytes, uint16_t)  
+            int migrationStatus = bb.getShort() & 0xFFFF;
+            
+            // Read host (46 bytes, char array)
+            byte[] hostBytes = new byte[MAX_HOST_LEN];
+            bb.get(hostBytes);
+            String host = new String(hostBytes).trim();
+            
+            // Read port (2 bytes, uint16_t)
+            int port = bb.getShort() & 0xFFFF;
+            
+            return new MigrationMetadata(slotId, migrationStatus, host, port);
+            
+        } catch (Exception e) {
+            return null;
         }
     }
-
-    private final int slotId;
-    private final MigrationStatus migrationStatus;
-    private final long sourceId;
-
-    public MigrationMetadata(int slotId, MigrationStatus migrationStatus, long sourceId) {
+    
+    /**
+     * Extract the actual data from a buffer containing data + metadata
+     * 
+     * @param buffer The buffer containing data + metadata
+     * @param dataLength The length of the actual data
+     * @return The data portion as a byte array
+     */
+    public static byte[] extractData(byte[] buffer, int dataLength) {
+        if (buffer == null || buffer.length < dataLength) {
+            return null;
+        }
+        
+        byte[] data = new byte[dataLength];
+        System.arraycopy(buffer, 0, data, 0, dataLength);
+        return data;
+    }
+    
+    public MigrationMetadata(int slotId, int migrationStatus, String host, int port) {
         this.slotId = slotId;
         this.migrationStatus = migrationStatus;
-        this.sourceId = sourceId;
+        this.host = host;
+        this.port = port;
     }
-
-    /**
-     * Parse migration metadata from a ByteBuffer containing the last 12 bytes of a Redis response.
-     * 
-     * @param buffer ByteBuffer containing the metadata (must have at least 12 bytes remaining)
-     * @return MigrationMetadata object
-     */
-    public static MigrationMetadata parse(ByteBuffer buffer) {
-        if (buffer.remaining() < 12) {
-            throw new IllegalArgumentException("Buffer must have at least 12 bytes remaining");
-        }
-
-        // Redis uses little-endian byte order
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        
-        int slotId = buffer.getShort() & 0xFFFF; // Convert to unsigned
-        int statusValue = buffer.getShort() & 0xFFFF; // Convert to unsigned
-        long sourceId = buffer.getInt() & 0xFFFFFFFFL; // Convert to unsigned
-
-        return new MigrationMetadata(slotId, MigrationStatus.fromValue(statusValue), sourceId);
-    }
-
+    
     public int getSlotId() {
         return slotId;
     }
-
-    public MigrationStatus getMigrationStatus() {
+    
+    public int getMigrationStatus() {
         return migrationStatus;
     }
-
-    public long getSourceId() {
-        return sourceId;
+    
+    public String getHost() {
+        return host;
     }
-
+    
+    public int getPort() {
+        return port;
+    }
+    
     @Override
     public String toString() {
-        return "MigrationMetadata{" +
-                "slotId=" + slotId +
-                ", migrationStatus=" + migrationStatus +
-                ", sourceId=" + sourceId +
-                '}';
+        return String.format("MigrationMetadata{slotId=%d, migrationStatus=%d, host='%s', port=%d}", 
+                           slotId, migrationStatus, host, port);
     }
 }
