@@ -21,6 +21,8 @@ package io.lettuce.core.migration;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 
 /**
  * Migration metadata structure that matches the C struct in migration.h
@@ -39,6 +41,7 @@ public class MigrationMetadata {
     
     private static final int METADATA_SIZE = 50; // 2+2+46+2 bytes
     private static final int MAX_HOST_LEN = 46;
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationMetadata.class);
     
     private final int slotId;
     private final int migrationStatus;
@@ -53,30 +56,54 @@ public class MigrationMetadata {
      */
     public static MigrationMetadata parse(ByteBuffer buffer) {
         if (buffer == null || buffer.remaining() < METADATA_SIZE) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Buffer is null or too small. remaining={}, required={}", 
+                    buffer != null ? buffer.remaining() : "null", METADATA_SIZE);
+            }
             return null;
         }
         
         try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Starting to parse migration metadata. Buffer remaining: {}", buffer.remaining());
+            }
+            
             ByteBuffer bb = buffer.duplicate();
             bb.order(ByteOrder.LITTLE_ENDIAN);
             
             // Read slot_id (2 bytes, uint16_t)
             int slotId = bb.getShort() & 0xFFFF;
+            if (logger.isDebugEnabled()) {
+                logger.debug("Read slotId: {}", slotId);
+            }
             
             // Read migration_status (2 bytes, uint16_t)  
             int migrationStatus = bb.getShort() & 0xFFFF;
+            if (logger.isDebugEnabled()) {
+                logger.debug("Read migrationStatus: {}", migrationStatus);
+            }
             
             // Read host (46 bytes, char array)
             byte[] hostBytes = new byte[MAX_HOST_LEN];
             bb.get(hostBytes);
             String host = new String(hostBytes).trim();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Read host: '{}' (length: {})", host, host.length());
+            }
             
             // Read port (2 bytes, uint16_t)
             int port = bb.getShort() & 0xFFFF;
+            if (logger.isDebugEnabled()) {
+                logger.debug("Read port: {}", port);
+            }
             
+            if (logger.isDebugEnabled()) {
+                logger.debug("Successfully parsed migration metadata");
+            }
             return new MigrationMetadata(slotId, migrationStatus, host, port);
             
         } catch (Exception e) {
+            logger.warn("Exception while parsing migration metadata: {}", e.getMessage(), e);
             return null;
         }
     }
