@@ -39,7 +39,7 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
  */
 public class MigrationMetadata {
     
-    private static final int METADATA_SIZE = 50; // 2+2+46+2 bytes
+    private static final int METADATA_SIZE = 52; // 2+2+46+2 bytes
 
     private static final int MAX_HOST_LEN = 46;
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationMetadata.class);
