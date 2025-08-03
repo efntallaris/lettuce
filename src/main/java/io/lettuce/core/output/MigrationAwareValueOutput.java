@@ -36,7 +36,7 @@ import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
  * as the last 50 bytes of bulk string responses. The metadata structure is:
  * - 2 bytes: slot_id (uint16_t)
  * - 2 bytes: migration_status (uint16_t) 
- * - 46 bytes: host (char array, MAX_HOST_LEN)
+ * - 12 bytes: host (char array, MAX_HOST_LEN)
  * - 2 bytes: port (uint16_t)
  *
  * This output handler extracts migration metadata from Redis responses
@@ -47,7 +47,7 @@ import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
  */
 public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, MigrationAwareResponse<V>> {
 
-    private static final int METADATA_SIZE = 52; // Updated to match new metadata structure: 2+2+46+2 bytes
+    private static final int METADATA_SIZE = 18; // Updated to match new metadata structure: 2+2+46+2 bytes
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationAwareValueOutput.class);
     private V originalValue;
     private Partitions partitions;
@@ -87,7 +87,7 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
                 logger.debug("IN MIGRATION AWARE VALUE OUTPUT: Original value: {}", originalValue);
             }
 
-            // Extract the metadata (last 12 bytes)
+            // Extract the metadata (last xx bytes)
             ByteBuffer metadataBuffer = bytes.duplicate();
             metadataBuffer.position(metadataBuffer.position() + dataLength);
             metadataBuffer.limit(metadataBuffer.position() + METADATA_SIZE);
