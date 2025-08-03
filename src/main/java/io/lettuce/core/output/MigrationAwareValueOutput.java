@@ -26,6 +26,8 @@ import io.lettuce.core.migration.MigrationAwareResponse;
 import io.lettuce.core.migration.MigrationMetadata;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.lettuce.core.cluster.models.partitions.Partitions;
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 
 /**
  * Value output that extracts migration metadata from the last 50 bytes of Redis responses.
@@ -48,6 +50,9 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
     private static final int METADATA_SIZE = 52; // Updated to match new metadata structure: 2+2+46+2 bytes
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationAwareValueOutput.class);
     private V originalValue;
+    private Partitions partitions;
+    private int slot;
+
 
     public MigrationAwareValueOutput(RedisCodec<K, V> codec) {
         super(codec, null);
@@ -92,6 +97,24 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
             try {
                 MigrationMetadata metadata = MigrationMetadata.parse(metadataBuffer);
                 output = new MigrationAwareResponse<>(originalValue, metadata);
+                
+                // Update migration cache with the received metadata
+                if (partitions != null && metadata != null && metadata.getMigrationStatus() == 1) {
+                    // Use the new method that creates RedisClusterNode from MigrationMetadata
+                    partitions.setMigrationTarget(slot, metadata);
+                    
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Updated migration cache for slot {} with metadata: {}", slot, metadata);
+                    }
+                }
+                
+                // Perform parallel double reads if migration is detected and we have the necessary components
+                // if (!doubleReadsPerformed && partitions != null && partitions.isSlotMigrating(slot)) {
+                    // performParallelDoubleReads();
+                // }
+
+                
+
             } catch (Exception e) {
                 // If metadata parsing fails, treat as normal response without metadata
                 output = new MigrationAwareResponse<>(originalValue, null);

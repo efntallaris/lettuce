@@ -1464,6 +1464,7 @@ class RedisCommandBuilder<K, V> extends BaseRedisCommandBuilder<K, V> {
         return createCommand(GET, new MigrationAwareValueOutput<>(codec), key);
     }
 
+
     
 
     Command<K, V, Long> getbit(K key, long offset) {

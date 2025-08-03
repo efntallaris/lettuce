@@ -60,6 +60,8 @@ import io.lettuce.core.protocol.DefaultEndpoint;
 import io.lettuce.core.protocol.ReadOnlyCommands;
 import io.lettuce.core.protocol.RedisCommand;
 import io.lettuce.core.resource.ClientResources;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 
 /**
  * Channel writer for cluster operation. This writer looks up the right partition by hash/slot for the operation.
@@ -69,6 +71,8 @@ import io.lettuce.core.resource.ClientResources;
  * @since 3.0
  */
 class ClusterDistributionChannelWriter implements RedisChannelWriter {
+
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(ClusterDistributionChannelWriter.class);
 
     private final RedisChannelWriter defaultWriter;
 
@@ -151,7 +155,36 @@ class ClusterDistributionChannelWriter implements RedisChannelWriter {
                             clusterCommand.getError()));
                 }
 
+
                 command.getOutput().setError((String) null);
+
+                if(shouldPerformParallelDoubleReads(command)) {
+                    logger.debug("PARALLEL DOUBLE READS: Starting parallel execution for slot {}", slot);
+                    // List<RedisCommand<K, V, ?>> enhancedCommands = new ArrayList<>();
+
+                    // Collection<RedisCommand <K, V, ? >> parallelCommands = createParallelDoubleReads(command);
+                    // enhancedCommands.addAll(parallelCommands);
+                    RedisClusterNode migrationTarget = partitions.getMigrationTargetBySlot(slot);
+                    RedisClusterNode masterTarget = partitions.getMasterBySlot(slot);
+                    RedisURI migrationTargetURI = migrationTarget.getUri();
+                    RedisURI masterTargetURI = masterTarget.getUri();
+                    logger.debug("PARALLEL DOUBLE READS: Missing nodes - migrationTarget={}, masterTarget={}", migrationTarget, masterTarget);
+                    CompletableFuture<StatefulRedisConnection<K, V>> hostFuture = asyncClusterConnectionProvider
+                            .getConnectionAsync(ConnectionIntent.READ, migrationTargetURI.getHost(), migrationTargetURI.getPort());
+                    CompletableFuture<StatefulRedisConnection<K, V>> migrationFuture = asyncClusterConnectionProvider
+                            .getConnectionAsync(ConnectionIntent.READ, masterTargetURI.getHost(), masterTargetURI.getPort());
+                    if (isSuccessfullyCompleted(hostFuture)) {
+                        logger.debug("PARALLEL DOUBLE READS: Host connection ready, writing command immediately");
+
+                        writeCommand(command, false, hostFuture.join(), null);
+                    } else {
+                        logger.debug("PARALLEL DOUBLE READS: Host connection pending, will write when ready");
+
+                        hostFuture.whenComplete((connection, throwable) -> writeCommand(command, false, connection, throwable));
+                    }
+                    return command;
+
+                }
 
                 CompletableFuture<StatefulRedisConnection<K, V>> connectFuture = asyncClusterConnectionProvider
                         .getConnectionAsync(ConnectionIntent.WRITE, target.getHostText(), target.getPort());
@@ -196,6 +229,53 @@ class ClusterDistributionChannelWriter implements RedisChannelWriter {
 
         return commandToSend;
     }
+
+    private <K, V> boolean shouldPerformParallelDoubleReads(RedisCommand<K, V, ?> command) {
+        CommandArgs<K, V> args = command.getArgs();
+        ByteBuffer encodedKey = args.getFirstEncodedKey();
+
+        if(command.getType() != CommandType.GET){
+
+            return false;
+        }
+
+        if (encodedKey == null) {
+            return false;
+        }
+        int hash = getSlot(encodedKey);
+        
+        return partitions != null && partitions.isSlotMigrating(hash);
+    }
+
+
+    // private <K, V> Collection<RedisCommand<K, V, ?>> createParallelDoubleReads(RedisCommand<K, V, ?> originalCommand) {
+    //     CommandArgs<K, V> args = originalCommand.getArgs();
+    //     // Extract key and calculate slot
+    //     ByteBuffer encodedKey = args.getFirstEncodedKey();
+
+    //     if (encodedKey == null) {
+    //         // return false;
+    //     }
+    //     int slot = getSlot(encodedKey);
+        
+    //     // Get migration target from cache
+    //     RedisClusterNode migrationTarget = partitions.getMigrationTargetBySlot(slot);
+    //     RedisClusterNode master = partitions.getMasterBySlot(slot);
+
+    //     // Create commands for both nodes
+    //     // List<RedisCommand<K, V, ?>> parallelCommands = new ArrayList<>();
+        
+    //     // Original command (will go to normal routing)
+    //     // parallelCommands.add(originalCommand);
+        
+    //     // Additional command for migration target
+    //     // RedisCommand<K, V, ?> migrationCommand = createCommandForNode(originalCommand, migrationTarget);
+    //     // parallelCommands.add(migrationCommand);
+        
+    //     // return parallelCommands;
+    // }
+
+
 
     private void publish(Event event) {
 

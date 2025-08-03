@@ -30,6 +30,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.cluster.SlotHash;
 import io.lettuce.core.internal.LettuceAssert;
+import io.lettuce.core.migration.MigrationMetadata;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 
 /**
  * Cluster topology view. An instance of {@link Partitions} provides access to the partitions of a Redis Cluster. A partition is
@@ -62,6 +65,7 @@ import io.lettuce.core.internal.LettuceAssert;
  */
 public class Partitions implements Collection<RedisClusterNode> {
 
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(Partitions.class);
     private static final RedisClusterNode[] EMPTY = new RedisClusterNode[SlotHash.SLOT_COUNT];
 
     private final Lock lock = new ReentrantLock();
@@ -71,6 +75,8 @@ public class Partitions implements Collection<RedisClusterNode> {
     private volatile RedisClusterNode[] slotCache = EMPTY;
 
     private volatile RedisClusterNode[] masterCache = EMPTY;
+
+    private volatile RedisClusterNode[] migrationCache = EMPTY;
 
     private volatile Collection<RedisClusterNode> nodeReadView = Collections.emptyList();
 
@@ -116,6 +122,28 @@ public class Partitions implements Collection<RedisClusterNode> {
         return masterCache[slot];
     }
 
+    /**
+     * Retrieve a {@link RedisClusterNode migration target node} by its slot number.
+     * This uses the migration cache to get the target node for migrating slots.
+     *
+     * @param slot the slot hash.
+     * @return the {@link RedisClusterNode} or {@code null} if not found or not migrating.
+     * @since 6.3
+     */
+    public RedisClusterNode getMigrationTargetBySlot(int slot) {
+        return migrationCache[slot];
+    }
+
+    /**
+     * Check if a slot is currently migrating based on the migration cache.
+     *
+     * @param slot the slot hash.
+     * @return true if the slot is migrating, false otherwise.
+     * @since 6.3
+     */
+    public boolean isSlotMigrating(int slot) {
+        return migrationCache[slot] != null;
+    }
     /**
      * Retrieve a {@link RedisClusterNode} by its node id.
      *
@@ -179,6 +207,7 @@ public class Partitions implements Collection<RedisClusterNode> {
 
             RedisClusterNode[] slotCache = new RedisClusterNode[SlotHash.SLOT_COUNT];
             RedisClusterNode[] masterCache = new RedisClusterNode[SlotHash.SLOT_COUNT];
+            RedisClusterNode[] migrationCache = new RedisClusterNode[SlotHash.SLOT_COUNT];
             List<RedisClusterNode> readView = new ArrayList<>(partitions.size());
 
             for (RedisClusterNode partition : partitions) {
@@ -193,15 +222,111 @@ public class Partitions implements Collection<RedisClusterNode> {
 
             this.slotCache = slotCache;
             this.masterCache = masterCache;
+            this.migrationCache = migrationCache;
             this.nodeReadView = Collections.unmodifiableCollection(readView);
         } finally {
             lock.unlock();
         }
     }
 
+    // Update the existing setMigrationTarget method to include logging
+    public void setMigrationTarget(int slot, MigrationMetadata sourceNode) {
+        lock.lock();
+        try {
+            RedisClusterNode targetNode = createNodeFromMigrationMetadata(sourceNode);
+            migrationCache[slot] = targetNode;
+            
+            if (logger.isDebugEnabled()) {
+                if (targetNode != null) {
+                    logger.debug("Set migration target for slot {}: {} ({})", 
+                            slot, targetNode.getUri(), targetNode.getNodeId());
+                } else {
+                    logger.debug("Cleared migration target for slot {}", slot);
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Create a RedisClusterNode instance from MigrationMetadata.
+     * This creates a temporary node representation for the migration target.
+     *
+     * @param metadata the migration metadata
+     * @return RedisClusterNode instance, or null if metadata is invalid
+     */
+    private RedisClusterNode createNodeFromMigrationMetadata(MigrationMetadata metadata) {
+        if (metadata == null || metadata.getHost() == null || metadata.getHost().trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // Create RedisURI from migration metadata
+            RedisURI uri = RedisURI.builder()
+                .withHost(metadata.getHost())
+                .withPort(metadata.getPort())
+                .build();
+            
+            // Create a temporary RedisClusterNode for the migration target
+            // We don't have all the node information, so we create a minimal representation
+            RedisClusterNode node = new RedisClusterNode();
+            node.setUri(uri);
+            
+            // Set a temporary node ID (you might want to generate this differently)
+            // For now, we'll use host:port as a temporary identifier
+            String tempNodeId = metadata.getHost() + ":" + metadata.getPort();
+            node.setNodeId(tempNodeId);
+            
+            // Mark as connected since we're actively migrating to it
+            node.setConnected(true);
+            
+            // Set appropriate flags for a migration target
+            // This node is likely a master (UPSTREAM) that we're migrating to
+            node.getFlags().add(RedisClusterNode.NodeFlag.UPSTREAM);
+            
+            // Set config epoch to a high value to indicate it's a valid target
+            // In a real implementation, you might get this from cluster info
+            node.setConfigEpoch(0);
+            
+            return node;
+            
+        } catch (Exception e) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Failed to create RedisClusterNode from migration metadata: {}", e.getMessage());
+            }
+            return null;
+        }
+    }
+
+
+
+    public void clearMigrationTarget(int slot) {
+        lock.lock();
+        try {
+            migrationCache[slot] = null;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Generate a temporary node ID for migration targets.
+     *
+     * @param host the host
+     * @param port the port
+     * @return temporary node ID
+     */
+    private String generateTempNodeId(String host, int port) {
+        // Create a deterministic but temporary node ID
+        return "migration-" + host.replace('.', '-') + "-" + port;
+    }
+
+
     private void invalidateCache() {
         this.slotCache = EMPTY;
         this.masterCache = EMPTY;
+        this.migrationCache = EMPTY;
         this.nodeReadView = Collections.emptyList();
     }
 
