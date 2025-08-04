@@ -166,7 +166,7 @@ class ClusterDistributionChannelWriter implements RedisChannelWriter {
 
                     // Collection<RedisCommand <K, V, ? >> parallelCommands = createParallelDoubleReads(command);
                     // enhancedCommands.addAll(parallelCommands);
-                    RedisClusterNode migrationTarget = partitions.getMigrationTargetBySlot(slot);
+                    RedisClusterNode migrationTarget = MigrationCache.getInstance().getMigrationTargetBySlot(slot);
                     RedisClusterNode masterTarget = partitions.getMasterBySlot(slot);
                     RedisURI migrationTargetURI = migrationTarget.getUri();
                     RedisURI masterTargetURI = masterTarget.getUri();
