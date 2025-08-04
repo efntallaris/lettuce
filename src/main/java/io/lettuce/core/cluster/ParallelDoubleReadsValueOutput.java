@@ -7,6 +7,7 @@ import io.lettuce.core.ReadFrom;
 import io.lettuce.core.cluster.models.partitions.Partitions;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import io.lettuce.core.cluster.SlotHash;
+import io.lettuce.core.migration.MigrationCache;
 import io.lettuce.core.migration.MigrationAwareResponse;
 import io.lettuce.core.output.MigrationAwareValueOutput;
 import io.lettuce.core.protocol.ConnectionIntent;
@@ -60,14 +61,14 @@ public class ParallelDoubleReadsValueOutput<K, V> extends MigrationAwareValueOut
      * This is called immediately when the output is created, before any read is executed.
      */
     private void initiateParallelDoubleReadsIfNeeded() {
-        if (partitions == null || key == null) {
+        if (key == null) {
             return;
         }
         
         int slot = calculateSlot(key);
         
         // Check if the slot is migrating based on the migration cache
-        if (!partitions.isSlotMigrating(slot)) {
+        if (!MigrationCache.getInstance().isSlotMigrating(slot)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Slot {} is not migrating, skipping parallel double reads for key: {}", slot, key);
             }
@@ -75,7 +76,7 @@ public class ParallelDoubleReadsValueOutput<K, V> extends MigrationAwareValueOut
         }
         
         // Get migration target from cache
-        RedisClusterNode migrationTarget = partitions.getMigrationTargetBySlot(slot);
+        RedisClusterNode migrationTarget = MigrationCache.getInstance().getMigrationTargetBySlot(slot);
         if (migrationTarget == null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("No migration target found in cache for slot {}, skipping parallel double reads", slot);
@@ -84,7 +85,7 @@ public class ParallelDoubleReadsValueOutput<K, V> extends MigrationAwareValueOut
         }
         
         // Get the master node for this slot
-        RedisClusterNode master = partitions.getMasterBySlot(slot);
+        RedisClusterNode master = partitions != null ? partitions.getMasterBySlot(slot) : null;
         if (master == null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("No master found for slot {}, skipping parallel double reads", slot);

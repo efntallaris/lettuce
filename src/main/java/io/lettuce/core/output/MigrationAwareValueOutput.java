@@ -28,6 +28,7 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.lettuce.core.cluster.models.partitions.Partitions;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
+import io.lettuce.core.migration.MigrationCache;
 
 /**
  * Value output that extracts migration metadata from the last 50 bytes of Redis responses.
@@ -50,7 +51,6 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
     private static final int METADATA_SIZE = 18; // Updated to match new metadata structure: 2+2+12+2 bytes
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationAwareValueOutput.class);
     private V originalValue;
-    private Partitions partitions;
     private int slot;
 
 
@@ -97,15 +97,14 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
             try {
                 MigrationMetadata metadata = MigrationMetadata.parse(metadataBuffer);
                 output = new MigrationAwareResponse<>(originalValue, metadata);
-                
                 if (logger.isDebugEnabled()) {
-                    logger.debug("IN MIGRATION AWARE VALUE OUTPUT: partitions:{} metadata:{} status:{}", partitions, metadata, metadata.getMigrationStatus());
+                    logger.debug("IN MIGRATION AWARE VALUE OUTPUT: metadata:{} status:{}", metadata, metadata != null ? metadata.getMigrationStatus() : null);
                 }
                 // Update migration cache with the received metadata
                 if (metadata != null && metadata.getMigrationStatus() == 1) {
-                    // Use the new method that creates RedisClusterNode from MigrationMetadata
-                    partitions.setMigrationTarget(slot, metadata);
-                    
+                    // Create RedisClusterNode from MigrationMetadata
+                    RedisClusterNode migrationNode = createNodeFromMigrationMetadata(metadata);
+                    MigrationCache.getInstance().setMigrationTarget(slot, migrationNode);
                     if (logger.isDebugEnabled()) {
                         logger.debug("Updated migration cache for slot {} with metadata: {}", slot, metadata);
                     }
@@ -148,5 +147,36 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
             sb.append(String.format("%02x", readOnlyBuffer.get()));
         }
         return sb.toString();
+    }
+
+    /**
+     * Create a RedisClusterNode instance from MigrationMetadata.
+     * This creates a temporary node representation for the migration target.
+     * @param metadata the migration metadata
+     * @return RedisClusterNode instance, or null if metadata is invalid
+     */
+    private RedisClusterNode createNodeFromMigrationMetadata(MigrationMetadata metadata) {
+        if (metadata == null || metadata.getHost() == null || metadata.getHost().trim().isEmpty()) {
+            return null;
+        }
+        try {
+            io.lettuce.core.RedisURI uri = io.lettuce.core.RedisURI.builder()
+                .withHost(metadata.getHost())
+                .withPort(metadata.getPort())
+                .build();
+            RedisClusterNode node = new RedisClusterNode();
+            node.setUri(uri);
+            String tempNodeId = metadata.getHost() + ":" + metadata.getPort();
+            node.setNodeId(tempNodeId);
+            node.setConnected(true);
+            node.getFlags().add(RedisClusterNode.NodeFlag.UPSTREAM);
+            node.setConfigEpoch(0);
+            return node;
+        } catch (Exception e) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Failed to create RedisClusterNode from migration metadata: {}", e.getMessage());
+            }
+            return null;
+        }
     }
 } 
