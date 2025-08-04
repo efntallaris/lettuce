@@ -102,7 +102,7 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
                     logger.debug("IN MIGRATION AWARE VALUE OUTPUT: partitions:{} metadata:{} status:{}", partitions, metadata, metadata.getMigrationStatus());
                 }
                 // Update migration cache with the received metadata
-                if (partitions != null && metadata != null && metadata.getMigrationStatus() == 1) {
+                if (metadata != null && metadata.getMigrationStatus() == 1) {
                     // Use the new method that creates RedisClusterNode from MigrationMetadata
                     partitions.setMigrationTarget(slot, metadata);
                     
