@@ -157,6 +157,7 @@ class ClusterDistributionChannelWriter implements RedisChannelWriter {
 
 
                 command.getOutput().setError((String) null);
+                logger.debug("STRATOS TEST");
 
                 if(shouldPerformParallelDoubleReads(command)) {
                     logger.debug("PARALLEL DOUBLE READS: Starting parallel execution for slot {}", slot);
