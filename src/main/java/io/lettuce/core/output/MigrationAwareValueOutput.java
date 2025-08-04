@@ -47,7 +47,7 @@ import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
  */
 public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, MigrationAwareResponse<V>> {
 
-    private static final int METADATA_SIZE = 18; // Updated to match new metadata structure: 2+2+46+2 bytes
+    private static final int METADATA_SIZE = 18; // Updated to match new metadata structure: 2+2+12+2 bytes
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(MigrationAwareValueOutput.class);
     private V originalValue;
     private Partitions partitions;
@@ -98,6 +98,9 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
                 MigrationMetadata metadata = MigrationMetadata.parse(metadataBuffer);
                 output = new MigrationAwareResponse<>(originalValue, metadata);
                 
+                if (logger.isDebugEnabled()) {
+                    logger.debug("IN MIGRATION AWARE VALUE OUTPUT: partitions:{} metadata:{} status:{}", partitions, metadata, metadata.getMigrationStatus());
+                }
                 // Update migration cache with the received metadata
                 if (partitions != null && metadata != null && metadata.getMigrationStatus() == 1) {
                     // Use the new method that creates RedisClusterNode from MigrationMetadata
