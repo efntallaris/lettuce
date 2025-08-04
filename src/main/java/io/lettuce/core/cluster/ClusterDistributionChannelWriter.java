@@ -62,6 +62,7 @@ import io.lettuce.core.protocol.RedisCommand;
 import io.lettuce.core.resource.ClientResources;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.lettuce.core.migration.MigrationCache;
 
 /**
  * Channel writer for cluster operation. This writer looks up the right partition by hash/slot for the operation.
@@ -236,7 +237,6 @@ class ClusterDistributionChannelWriter implements RedisChannelWriter {
         ByteBuffer encodedKey = args.getFirstEncodedKey();
 
         if(command.getType() != CommandType.GET){
-
             return false;
         }
 
@@ -244,8 +244,7 @@ class ClusterDistributionChannelWriter implements RedisChannelWriter {
             return false;
         }
         int hash = getSlot(encodedKey);
-        
-        return partitions != null && partitions.isSlotMigrating(hash);
+        return MigrationCache.getInstance().isSlotMigrating(hash);
     }
 
 
