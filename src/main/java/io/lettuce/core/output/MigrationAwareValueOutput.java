@@ -104,9 +104,9 @@ public class MigrationAwareValueOutput<K, V> extends CommandOutput<K, V, Migrati
                 if (metadata != null && metadata.getMigrationStatus() == 1) {
                     // Create RedisClusterNode from MigrationMetadata
                     RedisClusterNode migrationNode = createNodeFromMigrationMetadata(metadata);
-                    MigrationCache.getInstance().setMigrationTarget(slot, migrationNode);
+                    MigrationCache.getInstance().setMigrationTarget(metadata->getSlotId(), migrationNode);
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Updated migration cache for slot {} with metadata: {}", slot, metadata);
+                        logger.debug("Updated migration cache for slot {} with metadata: {}", metadata->getSlotId(), metadata);
                     }
                 }
                 
